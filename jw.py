@@ -254,8 +254,24 @@ def jw_run():
                 sys.stdout.write("\n%s:\n\n" % name)
                 printer.normal(taskgroup)
     else:
-        print("Projects:\n* %s\n" % "\n* ".join(["%s - %s" % (project.key, project.name,) for project in jwfetch.jw_projects()]))
-        print("Boards:\n* %s\n" % "\n* ".join([board.name for board in jwfetch.jw_boards()]))
+        print("Projects:\n")
+        projects = jwfetch.jw_projects()
+        for project in projects:
+            print("* %s - %s" % (project.key, project.name,))
+            versions = jwfetch.jw_versions(project)
+            if len(versions) == 0:
+                continue
+            print("\n  - %s\n" % "\n  - ".join([version.name for version in jwfetch.jw_versions(project)]))
+
+        print()
+        print("Boards:\n")
+        boards = jwfetch.jw_boards()
+        for board in boards:
+            print("* %s" % (board.name,))
+            sprints = jwfetch.jw_sprints(board)
+            if len(sprints) == 0:
+                continue
+            print("\n  - %s\n" % "\n  - ".join([sprint.name for sprint in jwfetch.jw_sprints(board)]))
 
 
 if __name__ == '__main__':

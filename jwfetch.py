@@ -40,8 +40,12 @@ def jw_boards():
     return jira.boards()
 
 
-def jw_versions():
-    versions = jira.project_versions(jira_project)
+def jw_versions(project=None):
+    try:
+        versions = jira.project_versions(project.key if project else jira_project)
+    except:
+        return []
+
     for version in versions:
         if hasattr(version, 'startDate'):
             version.dateFrom = datetime.datetime.strptime(version.startDate, "%Y-%m-%d")
@@ -62,10 +66,14 @@ def jw_versions():
     return sorted(versions, key=lambda version: version.dateTo and datetime.datetime.timestamp(version.dateTo) or sys.maxsize)
 
 
-def jw_sprints():
-    boards = jira.boards()
-    board = [board for board in boards if board.name == jira_board][0]
-    sprints = jira.sprints(board.id)
+def jw_sprints(board=None):
+    if not board:
+        boards = jira.boards()
+        board = [board for board in boards if board.name == jira_board][0]
+    try:
+        sprints = jira.sprints(board.id)
+    except:
+        return []
 
     for sprint in sprints:
         if hasattr(sprint, 'startDate'):
