@@ -9,7 +9,7 @@ def jw_options():
                         help='configured JIRA project')
 
     group = parser.add_argument_group('Listing target selection')
-    group_target = group.add_mutually_exclusive_group(required=True)
+    group_target = group.add_mutually_exclusive_group(required=False)
     group_target.add_argument('--versions',
                               action='store_true', dest='showVersions',
                               help='show versions list')

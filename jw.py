@@ -253,6 +253,9 @@ def jw_run():
             for name, taskgroup in groups.items():
                 sys.stdout.write("\n%s:\n\n" % name)
                 printer.normal(taskgroup)
+    else:
+        print("Projects:\n* %s\n" % "\n* ".join(["%s - %s" % (project.key, project.name,) for project in jwfetch.jw_projects()]))
+        print("Boards:\n* %s\n" % "\n* ".join([board.name for board in jwfetch.jw_boards()]))
 
 
 if __name__ == '__main__':

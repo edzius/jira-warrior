@@ -38,6 +38,12 @@ needs to be generated and used in `password` field.
 ## Usage
 
 ```
+$ jw.py
+
+  Will show JIRA server projects and boards information
+```
+
+```
 $ jw.py --versions
 
   Will show previous, current and future versions

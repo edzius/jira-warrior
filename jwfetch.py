@@ -32,6 +32,14 @@ def jw_init(config, params):
     jira = JIRA(options=options, basic_auth=basic_auth)
 
 
+def jw_projects():
+    return jira.projects()
+
+
+def jw_boards():
+    return jira.boards()
+
+
 def jw_versions():
     versions = jira.project_versions(jira_project)
     for version in versions:
