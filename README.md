@@ -52,6 +52,84 @@ $ jw.py --sprints
 ```
 $ jw.py --tasks
 
-  Will show today's active tasks
+  Will show recent tasks
 ```
 
+```
+$ jw.py other-project --tasks --for-period --last-week --resolved
+
+  Will show last week's resolved JIRA tasks for
+  'other-project' defined in configuration file.
+```
+
+### Options
+
+```
+usage: jw.py [-h] (--versions | --sprints | --tasks) [--for-version VERSION | --for-sprint SPRINT | --for-period]
+             [--by-version VERSION | --by-sprint SPRINT | --this-sprint | --last-sprint | --this-week | --last-week]
+             [--resolved | --state-open | --state-closed | --state-done | --state-working | --state-pending]
+             [--show-bugs | --show-support | --show-tstory | --show-ustory | --show-epics]
+             [--mark-state | --mark-type | --mark-range | --mark-sprint | --mark-version] [--show-brief | --show-detail]
+             [project]
+
+JIRA issues filter
+
+positional arguments:
+  project               configured JIRA project
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Listing target selection:
+  --versions            show versions list
+  --sprints             show sprints list
+  --tasks               show tasks list
+
+Tasks lookup method selection:
+  Effective only with --tasks option
+
+  --for-version VERSION
+                        for specified version
+  --for-sprint SPRINT   for specified sprint
+  --for-period          for specified period
+
+Tasks search period selection:
+  Effective only with --for-period option
+
+  --by-version VERSION  for specified version
+  --by-sprint SPRINT    for specified sprint
+  --this-sprint         for current sprint
+  --last-sprint         for previous sprint
+  --this-week           for current week
+  --last-week           for previous week
+
+Tasks filtering by state:
+  Effective only with --tasks option
+
+  --resolved            show only resolved tasks list
+  --state-open          filter "open" state tasks
+  --state-closed        filter "closed" state tasks
+  --state-done          filter "done" state tasks
+  --state-working       filter "working" state tasks
+  --state-pending       filter "pending" state tasks
+
+Tasks filtering by type:
+  Effective only with --tasks option
+
+  --show-bugs           show only bugs
+  --show-support        show only support tasks
+  --show-tstory         show only technical stories
+  --show-ustory         show only user stories
+  --show-epics          show only epics
+
+Print coloring control:
+  --mark-state          mark by task state
+  --mark-type           mark by task type
+  --mark-range          mark by resolution date
+  --mark-sprint         mark by assigned sprint
+  --mark-version        mark by assigned version
+
+Print detail control:
+  --show-brief          show brief info
+  --show-detail         show detailed info
+```
