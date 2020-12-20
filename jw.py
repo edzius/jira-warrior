@@ -163,20 +163,22 @@ def jw_run():
     jwfetch.jw_init(config, params)
 
     if params.showTasks:
-        if params.showDebug:
-            if params.showDebug == True:
+        if params.showInspect:
+            if params.showInspect == True:
                 task = jwfetch.jw_tasks_by_precedence(1)[0]
             else:
-                task = jwfetch.jw_tasks_by_key(params.showDebug)
+                task = jwfetch.jw_tasks_by_key(params.showInspect)
             jwtasks.debug(task)
             return
 
         if params.lookupVersion:
             version = jw_version_by_name(params.lookupVersion)
-            tasks = jwfetch.jw_tasks_by_version(version.name)
+            tasks = jwfetch.jw_tasks_by_version(version.name, params)
+            print("Tasks version %s" % version.name)
         elif params.lookupSprint:
             sprint = jw_sprint_by_name(params.lookupSprint)
-            tasks = jwfetch.jw_tasks_by_sprint(sprint.name)
+            tasks = jwfetch.jw_tasks_by_sprint(sprint.name, params)
+            print("Tasks sprint %s" % sprint.name)
         elif params.lookupPeriod:
             if params.findVersion:
                 version = jw_version_by_name(params.findVersion)
@@ -192,29 +194,25 @@ def jw_run():
             else:
                 dateFrom, dateTo = jw_date_by_relevance('-24h')
 
-            tasks = jwfetch.jw_tasks_by_date(dateFrom, dateTo, params.findActivity or "updated")
+            print("Tasks date %s - %s" % (dateFrom.strftime("%Y-%m-%d"), dateTo.strftime("%Y-%m-%d"),))
+
+            tasks = jwfetch.jw_tasks_by_date(params.findState, dateFrom, dateTo, params)
+        elif params.lookupList:
+            tasks = []
+            for item in params.lookupList:
+                tasks.append(jwfetch.jw_tasks_by_key(item))
         else:
-            tasks = jwfetch.jw_tasks_by_precedence(params.lookupLimit)
+            tasks = jwfetch.jw_tasks_by_precedence(params.lookupLimit, params)
 
         if len(tasks) == 0:
             print("Tasks not found")
             return
 
-        # Configure tasks filters
-        filtering = jwtasks.TasksFilter()
-        for fgroup in params.taskFilter or []:
-            flist = []
-            for ftype, fvalue in fgroup:
-                if ftype == 'state':
-                    flist.append(jwtasks.FilterByState(fvalue))
-                elif ftype == 'type':
-                    flist.append(jwtasks.FilterByType(fvalue))
-                else:
-                    fwlog.warn("unknow filter type: %s=%s" % (ftype, fvalue,))
-
-            filtering.add(*flist)
-
-        tasks = filtering.digest(tasks)
+        # Apply filtering
+        if params.taskChangeStatus:
+            tasks = jwtasks.FilterChangedStatus(dateFrom, dateTo).digest(tasks)
+        if params.taskChangeResolution:
+            tasks = jwtasks.FilterChangedResolution(dateFrom, dateTo).digest(tasks)
 
         if params.showSummary:
             printing = jwtasks.TasksStream()
@@ -241,13 +239,13 @@ def jw_run():
         grouping.print(printing)
         grouping.digest(tasks)
     elif params.showSprints:
-        if params.showDebug:
-            jwsprints.debug(params.showDebug)
+        if params.showInspect:
+            jwsprints.debug(params.showInspect)
             return
         jwsprints.run()
     elif params.showVersions:
-        if params.showDebug:
-            jwversions.debug(params.showDebug)
+        if params.showInspect:
+            jwversions.debug(params.showInspect)
             return
         jwversions.run()
     else:

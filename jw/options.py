@@ -29,6 +29,13 @@ def parse():
     parser.add_argument('project', type=str, nargs='?',
                         help='configured JIRA project')
 
+    parser.add_argument('--verbose', const=True,
+                        action='store_const', dest='showVerbose',
+                        help='verbose print')
+    parser.add_argument('--inspect', nargs='?', type=str, const=True,
+                        action='store', dest='showInspect',
+                        help='inspect data')
+
     group_detail = parser.add_mutually_exclusive_group(required=False)
     group_detail.add_argument('--show-brief',
                               action='store_true', dest='showBrief',
@@ -36,9 +43,6 @@ def parse():
     group_detail.add_argument('--show-summary',
                               action='store_true', dest='showSummary',
                               help='show tasks summary')
-    group_detail.add_argument('--debug', nargs='?', type=str, const=True,
-                              action='store', dest='showDebug',
-                              help='show debug fields')
 
     group = parser.add_argument_group('Listing target selection')
     group_target = group.add_mutually_exclusive_group(required=False)
@@ -66,6 +70,9 @@ def parse():
     group_lookup.add_argument('--limit', nargs=1, type=int, default=10,
                               action='store', dest='lookupLimit',
                               help='limit number of results')
+    group_lookup.add_argument('--list', nargs='+',
+                              action='store', dest='lookupList',
+                              help='list specified entries')
 
     group_period = parser.add_argument_group('Tasks search period selection', 'Effective only with --for-period option')
     group_period.add_argument('--by-version', metavar='VERSION',
@@ -87,27 +94,34 @@ def parse():
                               action='store_const', dest='relDate',
                               help='for previous week')
 
-    group = parser.add_argument_group('Tasks activity selection', 'Effective only with --for-period option')
-    group_activity = group.add_mutually_exclusive_group(required=False)
-    group_activity.add_argument('--created', const='created',
-                                action='store_const', dest='findActivity',
-                                help='select created tasks')
-    group_activity.add_argument('--updated', const='updated',
-                                action='store_const', dest='findActivity',
-                                help='select updated tasks')
-    group_activity.add_argument('--resolved', const='resolved',
-                                action='store_const', dest='findActivity',
-                                help='select resolved tasks')
+    group = parser.add_argument_group('Tasks state selection', 'Effective only with --for-period option')
+    group_state = group.add_mutually_exclusive_group(required=False)
+    group_state.add_argument('--updated', const='updated', default='updated',
+                             action='store_const', dest='findState',
+                             help='select updated tasks')
+    group_state.add_argument('--resolved', const='resolved',
+                             action='store_const', dest='findState',
+                             help='select resolved tasks')
+    group_state.add_argument('--created', const='created',
+                             action='store_const', dest='findState',
+                             help='select created tasks')
 
+    """
+    Filters tasks by state:
+        - Incomplete -- Tasks that are not yet done.
+        - Complete -- Tasks that are fully done; review and testing included!
+        - Working -- Tasks currenly work in progress.
+        - Pending -- Tasks that were not started yet.
+    """
     group_filtering = parser.add_argument_group('Tasks filtering options', 'Effective only with --tasks option')
-    group_filtering.add_argument('--state-open', const=('state', 'Open'),
-                                 action=TaskFilter, help='filter "open" state tasks')
-    group_filtering.add_argument('--state-done', const=('state', 'Done',),
-                                 action=TaskFilter, help='filter "done" state tasks')
+    group_filtering.add_argument('--state-incomplete', const=('state', 'Incomplete'),
+                                 action=TaskFilter, help='filter incomplete tasks')
+    group_filtering.add_argument('--state-complete', const=('state', 'Complete',),
+                                 action=TaskFilter, help='filter complete tasks')
     group_filtering.add_argument('--state-working', const=('state', 'Working',),
-                                 action=TaskFilter, help='filter "working" state tasks')
+                                 action=TaskFilter, help='filter work-in-progress tasks')
     group_filtering.add_argument('--state-pending', const=('state', 'Pending',),
-                                 action=TaskFilter, help='filter "pending" state tasks')
+                                 action=TaskFilter, help='filter pending-work tasks')
     group_filtering.add_argument('--type-bugs', const=('type', 'Bug',),
                                  action=TaskFilter, help='filter bugs')
     group_filtering.add_argument('--type-support', const=('type', 'Support Task',),
@@ -120,6 +134,12 @@ def parse():
                                  action=TaskFilter, help='filter epics')
     group_filtering.add_argument('--or', action=TaskOr,
                                   help='logical OR filters')
+
+    group_changed = parser.add_argument_group('Tasks changes options', 'Effective only with --tasks option')
+    group_changed.add_argument('--change-status', dest='taskChangeStatus', const=True,
+                               action='store_const', help='filter changed task status')
+    group_changed.add_argument('--change-resolution', dest='taskChangeResolution', const=True,
+                               action='store_const', help='filter changed task resolution')
 
     group_grouping = parser.add_argument_group('Tasks grouping options', 'Effective only with --tasks option')
     group_grouping.add_argument('--group-type', dest='taskGroup', const='type',

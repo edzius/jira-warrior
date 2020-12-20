@@ -1,5 +1,6 @@
 
 import sys
+import datetime
 from . import properties as jwprops
 
 def all(*args):
@@ -7,6 +8,70 @@ def all(*args):
     for arg in args:
         result.extend(arg)
     return result
+
+
+def checkRecordDate(record, dateFrom, dateTo):
+    dateStr = record.created.split('T')[0]
+    dateRec = datetime.datetime.strptime(dateStr, "%Y-%m-%d")
+    if dateFrom and dateFrom > dateRec:
+        return False
+    if dateTo and dateTo < dateRec:
+        return False
+    return True
+
+
+def getRecordField(record, field):
+    for item in record.items:
+        if item.field == field:
+            return item
+    return None
+
+
+class FilterChangedStatus:
+
+    def __init__(self, dateFrom, dateTo):
+        self.dateFrom = dateFrom
+        self.dateTo = dateTo
+
+    def digest(self, tasks):
+        filtered = []
+        for task in tasks:
+            found = False
+            for record in task.changelog.histories:
+                if not checkRecordDate(record, self.dateFrom, self.dateTo):
+                    continue
+
+                if not getRecordField(record, "status"):
+                    continue
+
+                found = True
+                break
+            if found:
+                filtered.append(task)
+
+        return filtered
+
+
+class FilterChangedResolution:
+
+    def __init__(self, dateFrom, dateTo):
+        self.dateFrom = dateFrom
+        self.dateTo = dateTo
+
+    def digest(self, tasks):
+        filtered = []
+        for task in tasks:
+            for record in task.changelog.histories:
+                if not checkRecordDate(record, self.dateFrom, self.dateTo):
+                    continue
+
+                if not getRecordField(record, "resolution"):
+                    continue
+
+                filtered.append(task)
+                break
+
+        return filtered
 
 
 class FilterByType:
@@ -261,7 +326,6 @@ def debug(task):
                   item.fromString if item.field != "Link" else getattr(item, "from"),
                   item.toString if item.field != "Link" else item.to))
         print('---')
-
 
 
 if __name__ == '__main__':

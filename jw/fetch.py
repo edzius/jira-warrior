@@ -94,53 +94,92 @@ def jw_sprints(board=None):
     return sorted(sprints, key=lambda sprint: sprint.dateFrom and datetime.datetime.timestamp(sprint.dateFrom) or sys.maxsize)
 
 
+def jw_tasks(params, version=None, sprint=None, dateFrom=None, dateTo=None, taskState="updated", taskCount=1000):
+    items = []
+    items.append('project=%s' % jira_project)
+    if version:
+        items.append('fixVersion="%s"' % version)
+    if sprint:
+        items.append('sprint="%s"' % sprint)
+    if dateFrom:
+        if taskState == "updated":
+            items.append('updated>="%s"' % dateFrom.strftime("%Y-%m-%d %H:%M"))
+        elif taskState == "resolved":
+            items.append('resolved>="%s"' % dateFrom.strftime("%Y-%m-%d %H:%M"))
+        elif taskState == "created":
+            items.append('created>="%s"' % dateFrom.strftime("%Y-%m-%d %H:%M"))
+        else:
+            raise TypeError("Unknown state '%s'" % taskState)
+    if dateTo:
+        if taskState == "updated":
+            items.append('updated<="%s"' % dateTo.strftime("%Y-%m-%d %H:%M"))
+        elif taskState == "resolved":
+            items.append('resolved<="%s"' % dateTo.strftime("%Y-%m-%d %H:%M"))
+        elif taskState == "created":
+            items.append('created<="%s"' % dateTo.strftime("%Y-%m-%d %H:%M"))
+        else:
+            raise TypeError("Unknown state '%s'" % taskState)
+
+    taskExpand = None
+    if params:
+        for fgroup in params.taskFilter or []:
+            flist = []
+            for ftype, fvalue in fgroup:
+                if ftype == 'type':
+                    flist.append('issuetype="%s"' % fvalue)
+                elif ftype == 'state':
+                    if fvalue == "Incomplete":
+                        flist.append('(status!="Closed" AND status!="Done" AND status!="Resolved")')
+                    elif fvalue == "Complete":
+                        flist.append('(status="Closed" OR status="Done" OR status="Resolved")')
+                    elif fvalue == "Working":
+                        flist.append('(status="In Progress" OR status="In Review")')
+                    elif fvalue == "Pending":
+                        flist.append('(status="Open" OR status="Paused" OR status="To Do" OR status="Reopened")')
+                    else:
+                        flist.append('status="%s"' % fvalue)
+
+            if len(flist) > 0:
+                items.append("(%s)" % " OR ".join(flist))
+
+        # Expand changelog when history is needed
+        if params.taskChangeStatus or params.taskChangeResolution:
+            taskExpand = "changelog"
+
+    searchQuery = " AND ".join(items)
+
+    if params.showVerbose:
+        print(">", searchQuery)
+
+    return jira.search_issues(searchQuery,
+                              maxResults=taskCount,
+                              expand=taskExpand)
+
+
 def jw_tasks_by_key(key):
     return jira.issue(key, expand='changelog')
 
 
-def jw_tasks_by_precedence(count):
-    return jira.search_issues("", maxResults=count, expand='changelog')
+def jw_tasks_by_precedence(count, params):
+    return jw_tasks(params, taskCount=count)
 
 
-def jw_tasks_by_date(dateFrom, dateTo=None, mode="updated"):
-    if dateFrom and dateTo:
-        if mode == "resolved":
-            query = 'project=%s AND resolved>="%s" AND resolved<="%s"'
-        elif mode == "updated":
-            query = 'project=%s AND updated>="%s" AND updated<="%s"'
-        elif mode == "created":
-            query = 'project=%s AND created>="%s" AND created<="%s"'
-        else:
-            raise TypeError("Unknown mode '%s'" % mode)
-        return jira.search_issues(query %
-                                  (jira_project,
-                                   dateFrom.strftime("%Y-%m-%d %H:%M"),
-                                   dateTo.strftime("%Y-%m-%d %H:%M"),),
-                                  maxResults=1000)
-    elif dateFrom:
-        if mode == "resolved":
-            query = 'project=%s AND resolved>="%s"'
-        elif mode == "updated":
-            query = 'project=%s AND updated>="%s"'
-        elif mode == "created":
-            query = 'project=%s AND created>="%s"'
-        else:
-            raise TypeError("Unknown mode '%s'" % mode)
-        return jira.search_issues(query %
-                                  (jira_project,
-                                   dateFrom.strftime("%Y-%m-%d %H:%M"),),
-                                  maxResults=1000)
-    else:
+def jw_tasks_by_date(taskState, dateFrom, dateTo, params):
+    if not dateFrom and not dateTo:
         raise TypeError("No date")
 
-
-def jw_tasks_by_sprint(sprint):
-    return jira.search_issues('project=%s AND sprint="%s"' %
-                              (jira_project, sprint,),
-                              maxResults=1000)
+    return jw_tasks(params, dateFrom=dateFrom, dateTo=dateTo, taskState=taskState)
 
 
-def jw_tasks_by_version(version):
-    return jira.search_issues('project=%s AND fixVersion="%s"' %
-                                  (jira_project, version,),
-                                  maxResults=1000)
+def jw_tasks_by_sprint(sprint, params):
+    if not sprint:
+        raise TypeError("No sprint")
+
+    return jw_tasks(params, sprint=sprint)
+
+
+def jw_tasks_by_version(version, params):
+    if not version:
+        raise TypeError("No version")
+
+    return jw_tasks(params, version=version)
