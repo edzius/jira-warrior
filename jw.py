@@ -70,7 +70,13 @@ def jw_sprint_by_relevance(sprint_offset):
         return sprints[sprint_number]
 
 
-def jw_date_by_relevance(date_offset):
+def jw_date_by_relevance(date_range):
+    date_offset, sep, date_period = date_range.partition(':')
+    try:
+        period = int(date_period) if date_period else 1
+    except ValueError:
+        period = 1
+
     match = re.match("(\-?\d+)([hdw])", date_offset)
     if not match:
         return None, None
@@ -80,13 +86,19 @@ def jw_date_by_relevance(date_offset):
     dnow = datetime.datetime.now().replace(tzinfo=None)
     if scale == "h":
         dnew = dnow + datetime.timedelta(hours=int(count))
+        if date_period:
+            dnow = dnew + datetime.timedelta(hours=int(period))
     elif scale == "d":
         dnow = dnow.replace(hour=0, minute=0, second=0, microsecond=0)
         dnew = dnow + datetime.timedelta(days=int(count))
+        if date_period:
+            dnow = dnew + datetime.timedelta(days=int(period))
     elif scale == "w":
         dnow = dnow.replace(hour=0, minute=0, second=0, microsecond=0)
         dnow = dnow - datetime.timedelta(days=dnow.weekday())
         dnew = dnow + datetime.timedelta(weeks=int(count))
+        if date_period:
+            dnow = dnew + datetime.timedelta(weeks=int(period))
 
     if dnow > dnew:
         dfrom = dnew

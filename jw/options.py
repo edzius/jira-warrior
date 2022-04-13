@@ -23,6 +23,23 @@ class TaskOr(argparse.Action):
         setattr(namespace, "taskOr", True)
 
 
+class ValueRange(argparse.Action):
+    def __call__(self, parser, namespace, values, *args):
+        if isinstance(values, int):
+            setattr(namespace, self.dest, -1 * values)
+        elif isinstance(values, str):
+            off, sep, cnt = values.partition(':')
+            out = []
+            try:
+                out.append("%i%s" % (-1 * int(off), self.const))
+                if cnt:
+                    out.append(str(abs(int(cnt))))
+            except ValueError:
+                parser.error("argument %s: invalid range value: '%s'" % (args[0], values,))
+
+            setattr(namespace, self.dest, ":".join(out))
+
+
 def parse():
     parser = argparse.ArgumentParser(description='JIRA issues filter')
 
@@ -81,18 +98,15 @@ def parse():
     group_period.add_argument('--by-sprint', metavar='SPRINT',
                               action='store', dest='findSprint',
                               help='for specified sprint')
-    group_period.add_argument('--this-sprint', const=0,
-                              action='store_const', dest='relSprint',
-                              help='for current sprint')
-    group_period.add_argument('--last-sprint', const=-1,
-                              action='store_const', dest='relSprint',
-                              help='for previous sprint')
-    group_period.add_argument('--this-week', const='1w',
-                              action='store_const', dest='relDate',
-                              help='for current week')
-    group_period.add_argument('--last-week', const='-1w',
-                              action='store_const', dest='relDate',
-                              help='for previous week')
+    group_period.add_argument('--of-sprint', type=int, metavar='OFFSET',
+                              action=ValueRange, dest='relSprint',
+                              help='for relative sprint')
+    group_period.add_argument('--of-week', const='w', metavar='OFFSET[:PERIOD]',
+                              action=ValueRange, dest='relDate',
+                              help='for relative week')
+    group_period.add_argument('--of-day', const='d', metavar='OFFSET[:PERIOD]',
+                              action=ValueRange, dest='relDate',
+                              help='for relative day')
 
     group = parser.add_argument_group('Tasks state selection', 'Effective only with --for-period option')
     group_state = group.add_mutually_exclusive_group(required=False)
