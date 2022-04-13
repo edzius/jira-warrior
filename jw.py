@@ -2,6 +2,7 @@
 
 import re
 import sys
+import math
 import datetime
 
 from jw import options as jwoptions
@@ -17,6 +18,13 @@ from jw import tasks as jwtasks
 def die(msg):
     print(msg)
     sys.exit(1)
+
+
+def year_week(dt):
+    dcurrent = dt.date()
+    dfirst = dcurrent.replace(month = 1, day = 1)
+    drange = dcurrent - dfirst
+    return math.floor(drange.days / 7)
 
 
 def jw_version_by_name(version_name):
@@ -174,11 +182,11 @@ def jw_run():
         if params.lookupVersion:
             version = jw_version_by_name(params.lookupVersion)
             tasks = jwfetch.jw_tasks_by_version(version.name, params)
-            print("Tasks version %s" % version.name)
+            print("Tasks version: %s" % version.name)
         elif params.lookupSprint:
             sprint = jw_sprint_by_name(params.lookupSprint)
             tasks = jwfetch.jw_tasks_by_sprint(sprint.name, params)
-            print("Tasks sprint %s" % sprint.name)
+            print("Tasks sprint: %s" % sprint.name)
         elif params.lookupPeriod:
             if params.findVersion:
                 version = jw_version_by_name(params.findVersion)
@@ -194,7 +202,8 @@ def jw_run():
             else:
                 dateFrom, dateTo = jw_date_by_relevance('-24h')
 
-            print("Tasks date %s - %s" % (dateFrom.strftime("%Y-%m-%d"), dateTo.strftime("%Y-%m-%d"),))
+            print("Tasks week: %i - %i" % (year_week(dateFrom), year_week(dateTo),))
+            print("Tasks date: %s - %s" % (dateFrom.strftime("%Y-%m-%d"), dateTo.strftime("%Y-%m-%d"),))
 
             tasks = jwfetch.jw_tasks_by_date(params.findState, dateFrom, dateTo, params)
         elif params.lookupList:
@@ -208,11 +217,16 @@ def jw_run():
             print("Tasks not found")
             return
 
+        tasks_total = len(tasks)
+
         # Apply filtering
         if params.taskChangeStatus:
             tasks = jwtasks.FilterChangedStatus(dateFrom, dateTo).digest(tasks)
         if params.taskChangeResolution:
             tasks = jwtasks.FilterChangedResolution(dateFrom, dateTo).digest(tasks)
+
+        tasks_shown = len(tasks)
+        print("Tasks total: %u/%u" % (tasks_shown, tasks_total,))
 
         if params.showSummary:
             printing = jwtasks.TasksStream()
