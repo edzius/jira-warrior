@@ -1,2 +1,5 @@
+*.swp
+*.swo
 *.pyc
 __pycache__/
+jw.conf
